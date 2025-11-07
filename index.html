@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Breaker: The Array Heist</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- Load Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
+    <style>
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        
+        .hacker-glow {
+            box-shadow: 0 0 15px rgba(0, 255, 128, 0.4), 0 0 5px rgba(0, 255, 128, 0.6);
+        }
+
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5) rotate(-45deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.1) rotate(45deg);
+            }
+        }
+
+        
+        .cell-fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .cell-fade-out {
+            animation: fadeOut 0.4s ease-in;
+        }
+
+        .cell-highlight-search {
+            background-color: #fef08a !important; /* yellow-200 */
+            color: #1f2937 !important; /* gray-800 */
+            transform: scale(1.1);
+            transition: all 0.1s;
+        }
+
+        
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-green-400 h-full flex items-center justify-center p-4 overflow-hidden">
+
+    <div class="w-full max-w-4xl bg-gray-800 border-2 border-green-700 rounded-lg p-6 hacker-glow">
+        
+        
+        <header class="text-center mb-4">
+            <h1 class="text-3xl font-bold text-white tracking-widest">[ CODE BREAKER: THE ARRAY HEIST ]</h1>
+            <p class="text-green-500">Manipulate the array. Find the secret pattern. Crack the vault.</p>
+        </header>
+
+        
+        <div class="flex justify-between items-center bg-gray-900 border border-green-600 p-3 rounded-lg mb-4 text-lg">
+            <div>
+                <span classclass="text-white">LEVEL:</span>
+                <span id="level-display" class="font-bold text-yellow-300">1</span>
+            </div>
+            <div>
+                <span class="text-white">TARGET PATTERN:</span>
+                <span id="target-display" class="font-bold text-yellow-300">[?, ?]</span>
+            </div>
+            <div>
+                <span class="text-white">TIME LEFT:</span>
+                <span id="timer-display" class="font-bold text-red-500">60</span>s
+            </div>
+        </div>
+
+        
+        <div id="array-container" class="flex justify-center items-center gap-2 md:gap-4 mb-6 min-h-[5rem]">
+            
+        </div>
+
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            
+            
+            <form id="insert-form" class="bg-gray-900 border border-green-600 p-4 rounded-lg flex flex-col gap-2">
+                <h3 class="text-lg text-white font-bold text-center">INSERT (>>)</h3>
+                <div class="flex gap-2">
+                    <input id="index-input" type="number" min="0" max="9" placeholder="Index" class="w-1/2 bg-gray-700 border-2 border-green-500 text-white rounded-lg p-2 text-center" required>
+                    <input id="value-input" type="number" min="0" max="9" placeholder="Value" class="w-1/2 bg-gray-700 border-2 border-green-500 text-white rounded-lg p-2 text-center" required>
+                </div>
+                <button type="submit" id="insert-btn" class="w-full bg-green-600 hover:bg-green-500 text-gray-900 font-bold py-2 px-4 rounded-lg transition-all disabled:bg-gray-600">Inject</button>
+            </form>
+
+            
+            <form id="delete-form" class="bg-gray-900 border border-green-600 p-4 rounded-lg flex flex-col gap-2">
+                <h3 class="text-lg text-white font-bold text-center">DELETE (<<)</h3>
+                <div class="flex gap-2">
+                    <input id="delete-index-input" type="number" min="0" max="9" placeholder="Index" class="w-full bg-gray-700 border-2 border-green-500 text-white rounded-lg p-2 text-center" required>
+                </div>
+                <button type="submit" id="delete-btn" class="w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-all disabled:bg-gray-600">Extract</button>
+            </form>
+
+            
+            <form id="search-form" class="bg-gray-900 border border-green-600 p-4 rounded-lg flex flex-col gap-2">
+                <h3 class="text-lg text-white font-bold text-center">SEARCH (??)</h3>
+                <div class="flex gap-2">
+                    <input id="pattern-input" type="text" placeholder="e.g., 1,2,3" class="w-full bg-gray-700 border-2 border-green-500 text-white rounded-lg p-2 text-center" required>
+                </div>
+                <button type="submit" id="search-btn" class="w-full bg-blue-500 hover:bg-blue-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition-all disabled:bg-gray-600">Scan</button>
+            </form>
+        </div>
+        
+        
+        <button id="reset-btn" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-all mb-4">SYSTEM RESET</button>
+
+        
+        <div class="bg-black border border-green-700 rounded-lg p-3 min-h-[3rem]">
+            <span class="text-yellow-300">> </span>
+            <span id="feedback-message">Initializing security bypass...</span>
+        </div>
+
+    </div>
+
+    
+    <div id="modal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-800 border-4 border-green-500 rounded-lg p-8 text-center shadow-2xl hacker-glow">
+            <h2 id="modal-title" class="text-4xl font-bold text-white mb-4"></h2>
+            <p id="modal-message" class="text-xl text-gray-200 mb-8"></p>
+            <button id="play-again-btn" class="bg-green-600 hover:bg-green-500 text-gray-900 font-bold py-3 px-6 rounded-lg text-lg transition-all">RE-ENGAGE (Play Again)</button>
+        </div>
+    </div>
+
+
+    <script type="module">
+        
+        const MAX_SIZE = 10;
+        let gameArray = new Array(MAX_SIZE).fill(null);
+        let currentLevel = 1;
+        let secretPattern = [];
+        let timeLeft = 60;
+        let timerInterval = null;
+        let isGameActive = true;
+        let isAnimating = false;
+
+        
+        const arrayContainer = document.getElementById('array-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const levelDisplay = document.getElementById('level-display');
+        const targetDisplay = document.getElementById('target-display');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        
+        const insertForm = document.getElementById('insert-form');
+        const indexInput = document.getElementById('index-input');
+        const valueInput = document.getElementById('value-input');
+        const deleteForm = document.getElementById('delete-form');
+        const deleteIndexInput = document.getElementById('delete-index-input');
+        const searchForm = document.getElementById('search-form');
+        const patternInput = document.getElementById('pattern-input');
+
+        
+        const insertBtn = document.getElementById('insert-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+        const searchBtn = document.getElementById('search-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        
+        
+        
+        let soundsReady = false;
+        let insertSound, deleteSound, errorSound, winSound, levelUpSound;
+
+        async function setupSounds() {
+            if (soundsReady) return;
+            await Tone.start();
+            
+            insertSound = new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+            }).toDestination();
+            
+            deleteSound = new Tone.Synth({
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+            }).toDestination();
+
+            errorSound = new Tone.NoiseSynth({
+                noise: { type: 'pink' },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
+            }).toDestination();
+
+            winSound = new Tone.PolySynth(Tone.Synth, {
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.5 }
+            }).toDestination();
+            
+            levelUpSound = new Tone.PolySynth(Tone.Synth, {
+                 envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+            }).toDestination();
+
+            soundsReady = true;
+            console.log("Audio context started.");
+        }
+        
+        
+        document.body.addEventListener('click', setupSounds, { once: true });
+
+
+        
+        
+        function initGame() {
+            console.log("Initializing game...");
+            currentLevel = 1;
+            timeLeft = 60;
+            isGameActive = true;
+            isAnimating = false;
+            
+            if (timerInterval) clearInterval(timerInterval);
+            hideModal();
+            setupLevel(currentLevel);
+            startTimer();
+            updateFeedback("New game started. Breach the first level.", "system");
+        }
+
+        
+        function setupLevel(level) {
+            currentLevel = level;
+            gameArray.fill(null); 
+            
+            let patternLength = 2; 
+            let targetText = " (Reversed)";
+
+            if (level === 1) {
+                patternLength = 2;
+                targetText = "";
+            } else if (level === 2) {
+                patternLength = 3;
+                targetText = "";
+            } else if (level === 3) {
+                patternLength = 3;
+                targetText = " (Reversed)";
+            } else {
+                
+                endGame(true, "All levels cleared! You're a master hacker!");
+                return;
+            }
+
+            secretPattern = generatePattern(patternLength);
+            console.log(`Level ${level} Secret Pattern:`, secretPattern);
+            
+            levelDisplay.textContent = level;
+            targetDisplay.textContent = `[${'?'.repeat(patternLength).split('').join(', ')}]${targetText}`;
+            
+            renderArray();
+        }
+
+        
+        function generatePattern(length) {
+            return Array.from({ length }, () => Math.floor(Math.random() * 10));
+        }
+
+        
+        function startTimer() {
+            timerDisplay.textContent = timeLeft;
+            timerInterval = setInterval(() => {
+                if (!isGameActive) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    endGame(false);
+                }
+            }, 1000);
+        }
+
+        
+        
+        function renderArray() {
+            arrayContainer.innerHTML = ''; 
+            gameArray.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.classList.add('array-cell', 'w-10', 'h-10', 'md:w-16', 'md:h-16', 'border-2', 'flex', 'items-center', 'justify-center', 'text-2xl', 'font-bold', 'transition-all', 'duration-300', 'rounded-md');
+                
+                if (val === null) {
+                    cell.classList.add('border-dashed', 'border-gray-600', 'text-gray-600');
+                    cell.textContent = '_';
+                } else {
+                    cell.classList.add('border-green-500', 'bg-gray-700', 'text-white');
+                    cell.textContent = val;
+                }
+                arrayContainer.appendChild(cell);
+            });
+        }
+
+        
+        const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+        
+        async function animateCell(element, animationClass) {
+            if (!element) return;
+            element.classList.add(animationClass);
+            await wait(400); 
+            element.classList.remove(animationClass);
+        }
+        
+        
+        function setAnimating(animating) {
+            isAnimating = animating;
+            insertBtn.disabled = animating;
+            deleteBtn.disabled = animating;
+            searchBtn.disabled = animating;
+            resetBtn.disabled = animating;
+        }
+
+
+        
+        
+        async function handleInsert(e) {
+            e.preventDefault();
+            if (isAnimating || !isGameActive) return;
+            
+            await setupSounds(); 
+            
+            const index = parseInt(indexInput.value);
+            const value = parseInt(valueInput.value);
+
+            
+            if (isNaN(index) || isNaN(value)) {
+                updateFeedback("Error: Index and Value must be numbers.", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+            if (index < 0 || index >= MAX_SIZE) {
+                updateFeedback("Error: Index out of bounds (0-9).", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+            if (value < 0 || value > 9) {
+                updateFeedback("Error: Value must be a single digit (0-9).", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+            if (gameArray[MAX_SIZE - 1] !== null) {
+                updateFeedback("Error: Array is full. Delete an element first.", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+
+            setAnimating(true);
+            
+            
+            for (let i = MAX_SIZE - 1; i > index; i--) {
+                gameArray[i] = gameArray[i - 1];
+            }
+            gameArray[index] = value;
+            
+            if (soundsReady) insertSound.triggerAttackRelease("C5", "0.1s", Tone.now());
+            
+            
+            renderArray();
+            const newCell = arrayContainer.children[index];
+            await animateCell(newCell, 'cell-fade-in');
+            
+            updateFeedback(`Injected ${value} at index ${index}.`, "success");
+            setAnimating(false);
+            
+            checkWinCondition();
+        }
+
+        
+        async function handleDelete(e) {
+            e.preventDefault();
+            if (isAnimating || !isGameActive) return;
+            
+            await setupSounds();
+
+            const index = parseInt(deleteIndexInput.value);
+
+            
+            if (isNaN(index)) {
+                updateFeedback("Error: Index must be a number.", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+            if (index < 0 || index >= MAX_SIZE) {
+                updateFeedback("Error: Index out of bounds (0-9).", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+            if (gameArray[index] === null) {
+                updateFeedback("Error: Cannot delete empty cell.", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+
+            setAnimating(true);
+            
+            
+            const cellToDelete = arrayContainer.children[index];
+            if (soundsReady) deleteSound.triggerAttackRelease("C4", "0.1s", Tone.now());
+            await animateCell(cellToDelete, 'cell-fade-out');
+
+            
+            for (let i = index; i < MAX_SIZE - 1; i++) {
+                gameArray[i] = gameArray[i + 1];
+            }
+            gameArray[MAX_SIZE - 1] = null; 
+
+            
+            renderArray();
+            
+            updateFeedback(`Extracted element at index ${index}.`, "success");
+            setAnimating(false);
+            
+            checkWinCondition();
+        }
+
+        
+        async function handleSearch(e) {
+            e.preventDefault();
+            if (isAnimating || !isGameActive) return;
+
+            await setupSounds();
+
+            const patternString = patternInput.value;
+            const patternArray = parsePattern(patternString);
+
+            
+            if (!patternArray || patternArray.length === 0) {
+                updateFeedback("Error: Invalid pattern. Use comma-separated numbers (e.g., 1,2,3).", "error");
+                if (soundsReady) errorSound.triggerAttackRelease("0.1s", Tone.now());
+                return;
+            }
+
+            setAnimating(true);
+            updateFeedback(`Scanning for pattern [${patternArray.join(', ')}]...`, "info");
+
+            const cells = Array.from(arrayContainer.children);
+            let foundIndex = -1;
+
+            for (let i = 0; i <= MAX_SIZE - patternArray.length; i++) {
+                const slice = gameArray.slice(i, i + patternArray.length);
+                let isMatch = true;
+                
+                
+                const highlightIndices = [];
+                for (let j = 0; j < patternArray.length; j++) {
+                    if (slice[j] !== patternArray[j]) {
+                        isMatch = false;
+                    }
+                    cells[i + j].classList.add('cell-highlight-search');
+                    highlightIndices.push(i + j);
+                }
+
+                await wait(400); 
+
+                if (isMatch) {
+                    foundIndex = i;
+                    
+                    break;
+                }
+
+                
+                highlightIndices.forEach(idx => cells[idx].classList.remove('cell-highlight-search'));
+            }
+
+            if (foundIndex !== -1) {
+                updateFeedback(`Pattern found at index ${foundIndex}!`, "success");
+                if (soundsReady) levelUpSound.triggerAttackRelease(["C4", "G4"], "0.2s", Tone.now());
+                await wait(1000); 
+                
+                for (let j = 0; j < patternArray.length; j++) {
+                    cells[foundIndex + j].classList.remove('cell-highlight-search');
+                }
+            } else {
+                updateFeedback("Pattern not found in array.", "info");
+            }
+            
+            setAnimating(false);
+        }
+        
+        
+        function parsePattern(inputString) {
+            try {
+                const parts = inputString.split(',');
+                if (parts.length === 0 || (parts.length === 1 && parts[0].trim() === '')) return null;
+                
+                const numbers = parts.map(p => {
+                    const num = parseInt(p.trim());
+                    if (isNaN(num)) throw new Error("Invalid number");
+                    return num;
+                });
+                return numbers;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        
+        
+        async function checkWinCondition() {
+            if (!isGameActive) return;
+
+            const targetPattern = (currentLevel === 3) 
+                ? secretPattern.slice().reverse() 
+                : secretPattern;
+            
+            let found = false;
+            for (let i = 0; i <= MAX_SIZE - targetPattern.length; i++) {
+                const slice = gameArray.slice(i, i + targetPattern.length);
+                if (JSON.stringify(slice) === JSON.stringify(targetPattern)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                isGameActive = false; 
+                clearInterval(timerInterval);
+                
+                updateFeedback(`LEVEL ${currentLevel} CLEARED! Accessing next layer...`, "success");
+                if (soundsReady) levelUpSound.triggerAttackRelease(["C4", "E4", "G4"], "0.3s", Tone.now());
+                
+                await wait(1500); 
+
+                currentLevel++;
+                if (currentLevel > 3) {
+                    endGame(true, `All levels cleared in ${60 - timeLeft} seconds!`);
+                } else {
+                    setupLevel(currentLevel);
+                    
+                    timeLeft = 60;
+                    isGameActive = true;
+                    startTimer();
+                    updateFeedback(`Level ${currentLevel} initiated. Good luck.`, "system");
+                }
+            }
+        }
+
+        
+        function endGame(didWin, messageOverride = "") {
+            isGameActive = false;
+            clearInterval(timerInterval);
+
+            if (didWin) {
+                showModal("SYSTEM CRACKED!", messageOverride || `Mainframe breached with ${timeLeft}s to spare!`);
+                if (soundsReady) winSound.triggerAttackRelease(["C5", "E5", "G5", "C6"], "1s", Tone.now());
+            } else {
+                showModal("ACCESS DENIED!", messageOverride || "Time's up! The system locked you out.");
+                if (soundsReady) errorSound.triggerAttackRelease("0.5s", Tone.now());
+            }
+        }
+
+        
+        function updateFeedback(message, type = "info") {
+            feedbackMessage.textContent = message;
+            feedbackMessage.classList.remove('text-green-400', 'text-red-500', 'text-blue-400', 'text-yellow-300');
+            
+            switch (type) {
+                case 'success':
+                    feedbackMessage.classList.add('text-green-400');
+                    break;
+                case 'error':
+                    feedbackMessage.classList.add('text-red-500');
+                    break;
+                case 'info':
+                    feedbackMessage.classList.add('text-blue-400');
+                    break;
+                case 'system':
+                default:
+                    feedbackMessage.classList.add('text-yellow-300'); 
+                    break;
+            }
+        }
+
+        /**
+         * Shows the modal.
+         * @param {string} title - The modal title.
+         * @param {string} message - The modal message.
+         */
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.classList.remove('hidden');
+        }
+
+        
+        function hideModal() {
+            modal.classList.add('hidden');
+        }
+
+        
+        insertForm.addEventListener('submit', handleInsert);
+        deleteForm.addEventListener('submit', handleDelete);
+        searchForm.addEventListener('submit', handleSearch);
+        resetBtn.addEventListener('click', () => {
+            updateFeedback("System reset initiated.", "system");
+            initGame();
+        });
+        playAgainBtn.addEventListener('click', initGame);
+
+        
+        document.addEventListener('DOMContentLoaded', initGame);
+
+    </script>
+</body>
+</html>
